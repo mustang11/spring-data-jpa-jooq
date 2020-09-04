@@ -1,0 +1,101 @@
+plugins {
+    id 'org.springframework.boot' version '2.3.3.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.10.RELEASE'
+    id 'nu.studer.jooq' version '5.0.2'
+    id 'java'
+}
+
+ext {
+    jooqVersion = '3.13.4'
+    packages = 'ray.demo.jooq.domains'
+}
+
+group = 'ray.demo'
+version = '0.0.1'
+sourceCompatibility = JavaVersion.VERSION_1_8
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+allprojects {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+    repositories {
+        mavenCentral()
+    }
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
+}
+
+subprojects {
+    group = 'ray.demo'
+    version = '0.0.1'
+}
+
+configurations {
+    application
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.jooq:jooq:3.13.4'
+    runtimeOnly 'com.h2database:h2:1.4.200'
+    compileOnly 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+
+    implementation project(":domains")
+
+    jooqGenerator project(':domains')
+    jooqGenerator "org.jooq:jooq-meta:$jooqVersion"
+    jooqGenerator "org.jooq:jooq-meta-extensions:$jooqVersion"
+    jooqGenerator 'com.h2database:h2:1.4.200'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jooq {
+    version = jooqVersion
+    edition = nu.studer.gradle.jooq.JooqEdition.OSS
+    configurations {
+        main {
+            generateSchemaSourceOnCompilation = true
+            generationTool {
+                logging = org.jooq.meta.jaxb.Logging.INFO
+                generator {
+                    database {
+                        name = 'org.jooq.meta.extensions.jpa.JPADatabase'
+                        properties {
+                            property {
+                                key = 'packages'
+                                value = packages
+                            }
+                        }
+                        includes = ".*"
+                    }
+                    target {
+                        packageName = 'ray.demo.jooq.schema'
+                        directory = "$buildDir/generated/sources/jooq/java/main"
+                    }
+                    generate {
+                        javaTimeTypes = true
+                    }
+                }
+            }
+        }
+    }
+}
